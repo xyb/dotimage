@@ -9,14 +9,11 @@ from StringIO import StringIO
 from flask import Flask, make_response, request, Response
 from werkzeug import secure_filename
 
+DEBUG = os.environ.get('DEBUG', '')
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/tmp/dotimage')
-CWD = os.path.dirname(os.path.realpath(__file__))
-
-
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 DOT = './gprof2dot -f {profformat} {profpath} | dot -T{imgformat} -o {imgpath}'
+APP_DIR = os.path.dirname(os.path.realpath(__file__))
 
 INDEX_HTML = '''<!doctype html>
 <title>Upload Profiling File</title>
@@ -42,6 +39,9 @@ INDEX_HTML = '''<!doctype html>
 </form>
 '''
 
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 
 @app.route('/', methods=['GET'])
 def index():
@@ -64,7 +64,7 @@ def draw_graph(id, prof, profformat, imageformat, imagedir):
                       imgformat=imageformat, imgpath=image_path)
     proc = subprocess.Popen(args=args, shell=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            cwd=CWD)
+                            cwd=APP_DIR)
     stdout, stderr = proc.communicate(None)
     error = ''
     if 'Traceback' in stderr:
@@ -90,7 +90,7 @@ def profiling():
     return Response(image, content_type='image/png')
 
 
-test_pstats_content = '''
+TEST_PSTATS_CONTENT = '''
 eygDAAAAcwQAAABhLnB5aQEAAAB0CAAAADxtb2R1bGU+KAUAAABpAQAAAGkBAAAAZwBY0lEOZgM/
 ZwBY0lEOZgM/eygDAAAAdAcAAABwcm9maWxlaQAAAABjAAAAAAAAAAABAAAAQAAAAHMJAAAAZAAA
 R0hkAQBTKAIAAAB0BQAAAGhlbGxvTigAAAAAKAAAAAAoAAAAACgAAAAAcwQAAABhLnB5UgAAAAAB
@@ -117,20 +117,21 @@ class DotImageTestCase(unittest.TestCase):
         assert 'Upload' in r.data
 
     def test_profile_file(self):
-        r = self.app.post('/', data=dict(dot=(StringIO(test_pstats_content),
-                                              'output.pstats'),
-                                         format='pstats',
-                                         imageformat='png'),
+        r = self.app.post('/',
+                          data=dict(dot=(StringIO(TEST_PSTATS_CONTENT),
+                                         'output.pstats'),
+                                    format='pstats',
+                                    imageformat='png'),
                           follow_redirects=True)
         assert r.status_code, 200
         assert r.content_type, 'image/png'
         assert r.data
 
     def test_empty_profile_file(self):
-        r = self.app.post('/', data=dict(dot=(StringIO(''),
-                                              'output.pstats'),
-                                         format='pstats',
-                                         imageformat='png'),
+        r = self.app.post('/',
+                          data=dict(dot=(StringIO(''), 'output.pstats'),
+                                    format='pstats',
+                                    imageformat='png'),
                           follow_redirects=True)
         assert r.status_code, 404
 
@@ -138,12 +139,13 @@ class DotImageTestCase(unittest.TestCase):
 def test():
     unittest.main()
 
+
 if __name__ == '__main__':
     import sys
     if sys.argv[1:] == ['test']:
         del sys.argv[1]
         test()
     else:
-        if os.environ.get('DEBUG', ''):
+        if DEBUG:
             app.debug = True
         app.run(host="0.0.0.0")
