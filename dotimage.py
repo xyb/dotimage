@@ -12,7 +12,7 @@ from werkzeug import secure_filename
 DEBUG = os.environ.get('DEBUG', '')
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/tmp/dotimage')
 
-DOT = './gprof2dot -f {profformat} {profpath} | dot -T{imgformat} -o {imgpath}'
+DOT = 'gprof2dot -f {profformat} {profpath} | dot -T{imgformat} -o {imgpath}'
 APP_DIR = os.path.dirname(os.path.realpath(__file__))
 
 INDEX_HTML = '''<!doctype html>
