@@ -1,2 +1,2 @@
-flask
-gprof2dot
+flask>=0.11.1
+gprof2dot>=2015.12.1
